@@ -12,7 +12,7 @@ csharp_prefer_braces = true:silent
 csharp_style_namespace_declarations = block_scoped:silent
 csharp_style_prefer_method_group_conversion = true:silent
 csharp_style_prefer_top_level_statements = true:silent
-csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_primary_constructors = true:none
 csharp_style_expression_bodied_methods = false:silent
 csharp_style_expression_bodied_constructors = false:silent
 csharp_style_expression_bodied_operators = false:silent
@@ -57,6 +57,15 @@ dotnet_diagnostic.SA1132.severity = none
 
 # SA1300: Element should begin with upper-case letter
 dotnet_diagnostic.SA1300.severity = none
+
+# IDE0290: Use primary constructor
+dotnet_diagnostic.IDE0290.severity = none
+
+# SA1128: Put constructor initializers on their own line
+dotnet_diagnostic.SA1128.severity = none
+
+# SA1405: Debug.Assert should provide message text
+dotnet_diagnostic.SA1405.severity = none
 
 [*.{cs,vb}]
 #### Naming styles ####

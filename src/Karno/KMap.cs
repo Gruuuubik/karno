@@ -6,24 +6,27 @@ namespace Karno
 {
 	public class KMap
 	{
-
-		SortedSet<string> on_set_binary;
-		SortedSet<string> dc_set_binary;
+		private readonly SortedSet<string> onSetBinary;
+		private readonly SortedSet<string> dcSetBinary;
 
 		public KMap(int number_of_variables, HashSet<long> on_set, HashSet<long> dc_set)
 		{
 			if (on_set.Intersect(dc_set).Count() > 0)
+			{
 				throw new ArgumentException("ON set and DC set must be disjoint");
+			}
 
 			if (on_set.Count == 0)
+			{
 				throw new ArgumentException("ON set can't be empty");
+			}
 
 			NumberOfVariables = number_of_variables;
 			ONSet = on_set;
 			DCSet = dc_set;
 
-			on_set_binary = new SortedSet<string>(ONSet.Select(e => e.ToBinaryString(number_of_variables)));
-			dc_set_binary = new SortedSet<string>(DCSet.Select(e => e.ToBinaryString(number_of_variables)));
+			onSetBinary = new SortedSet<string>(ONSet.Select(e => e.ToBinaryString(number_of_variables)));
+			dcSetBinary = new SortedSet<string>(DCSet.Select(e => e.ToBinaryString(number_of_variables)));
 		}
 
 		public int NumberOfVariables { get; private set; }
@@ -37,14 +40,19 @@ namespace Karno
 			var groups = new Coverage();
 
 			// Generate initial groups (of cardinality 1)
-			foreach (var one in on_set_binary)
-				groups.Add(new Group() { one });
+			foreach (var one in onSetBinary)
+			{
+				groups.Add([one]);
+			}
 
 			// onsider the don't cares as 'ones', but don't consider them essential
-			foreach (var dc in dc_set_binary)
-				groups.Add(new Group() { dc });
+			foreach (var dc in dcSetBinary)
+			{
+				groups.Add([dc]);
+			}
 
 			Coverage previous_groups = null;
+			
 			// Continue merging and optimizing until it's possible
 			while (previous_groups == null || !groups.Equals(previous_groups))
 			{
@@ -52,6 +60,7 @@ namespace Karno
 
 				// Merge groups of cardinality 'n' to create groups of double cardinality
 				groups = MergeGroups(groups);
+				
 				// Clean up groups that are strict subsets of other groups
 				groups = RemoveSubsets(groups);
 			}
@@ -65,7 +74,7 @@ namespace Karno
 			return GetCoverages(groups);
 		}
 
-		Coverage MergeGroups(Coverage groups)
+		private static Coverage MergeGroups(Coverage groups)
 		{
 			var merged = new Coverage();
 			foreach (var g1 in groups)
@@ -84,11 +93,13 @@ namespace Karno
 			return new Coverage(groups.Union(merged));
 		}
 
-		bool AreGroupsAdjacent(Group group1, Group group2)
+		private static bool AreGroupsAdjacent(Group group1, Group group2)
 		{
 			// In order to be adjacent, they need to have the same cardinality
 			if (group1.Count != group2.Count)
+			{
 				return false;
+			}
 
 			// For each one in the first group, there should be one 'pairing' one in the other
 			// such that they have a hamming distance of 1.
@@ -98,10 +109,11 @@ namespace Karno
 				var matched = false;
 				foreach (var term2 in group2)
 				{
-
 					if (matched_in_group2.Contains(term2))
+					{
 						// This one has already been matched previously, skip it
 						continue;
+					}
 					else if (Utils.Hamming(term1, term2) == 1)
 					{
 						matched = true;
@@ -111,15 +123,60 @@ namespace Karno
 				}
 
 				if (!matched)
+				{
 					// If there is even one "one" in the first group that doesn't
 					// have a matching pair, then the two groups cannot be adjacent
 					return false;
+				}
 			}
 
 			return true;
 		}
 
-		HashSet<Coverage> GetCoverages(Coverage groups)
+		private static Coverage RemoveSubsets(Coverage groups)
+		{
+			var not_subsets = new Coverage();
+			foreach (var candidate_subset in groups)
+			{
+				if (!groups.Any(candidate_superset => candidate_subset.IsProperSubsetOf(candidate_superset)))
+				{
+					not_subsets.Add(candidate_subset);
+				}
+			}
+
+			return not_subsets;
+		}
+
+		private static Coverage RemoveRedundant(Coverage groups)
+		{
+			// A group is redundant if it covers "ones" already covered by other
+			// essential groups
+			var redundant = new Coverage();
+			var essential = new Coverage(groups.Where(g => g.IsEssential.Value));
+
+			foreach (var g in groups)
+			{
+				if (g.IsEssential.Value)
+				{
+					continue;
+				}
+
+				var remaining_terms = new Group(g);
+				foreach (var e in essential)
+				{
+					remaining_terms.ExceptWith(e);
+				}
+
+				if (remaining_terms.Count == 0)
+				{
+					redundant.Add(g);
+				}
+			}
+
+			return new Coverage(groups.Except(redundant));
+		}
+
+		private HashSet<Coverage> GetCoverages(Coverage groups)
 		{
 			// Navigate the graph of (possible) solutions, each including or excluding one particular group
 			// Each if each solution is valid (i.e. it covers all 'ones')
@@ -128,7 +185,7 @@ namespace Karno
 			return new HashSet<Coverage>(NavigateCoverages(essential, available_groups_list, true));
 		}
 
-		IEnumerable<Coverage> NavigateCoverages(Coverage selected_groups, IEnumerable<Group> available_groups_list, bool check_coverage)
+		private IEnumerable<Coverage> NavigateCoverages(Coverage selected_groups, IEnumerable<Group> available_groups_list, bool check_coverage)
 		{
 			/*
              
@@ -165,7 +222,9 @@ namespace Karno
 
 			// base solution for recursion
 			if (!available_groups_list.Any())
+			{
 				return solutions;
+			}
 
 			var left_branch_groups = new Coverage(selected_groups) { available_groups_list.First() };
 			var right_branch_groups = new Coverage(selected_groups);
@@ -177,17 +236,21 @@ namespace Karno
 			return solutions.Union(left_branch_coverages).Union(right_branch_coverages);
 		}
 
-		bool IsValidCoverage(Coverage selected_groups, out Coverage coverage)
+		private bool IsValidCoverage(Coverage selected_groups, out Coverage coverage)
 		{
 			coverage = null;
-			var on_set = new SortedSet<string>(on_set_binary);
+			var on_set = new SortedSet<string>(onSetBinary);
 
 			foreach (var g in selected_groups)
+			{
 				on_set.ExceptWith(g);
+			}
 
 			// A coverage is valid if and only if it covers all the 'ones' of the function
 			if (on_set.Any())
+			{
 				return false;
+			}
 			else
 			{
 				coverage = new Coverage(selected_groups) { Cost = CoverageCost(selected_groups) };
@@ -203,24 +266,13 @@ namespace Karno
 			foreach (var g in selected_groups)
 			{
 				var n = (long)Math.Log(g.Count, 2);
-				cost += (NumberOfVariables - n);
+				cost += NumberOfVariables - n;
 			}
+
 			return cost;
 		}
 
-		Coverage RemoveSubsets(Coverage groups)
-		{
-			var not_subsets = new Coverage();
-			foreach (var candidate_subset in groups)
-			{
-				if (!groups.Any(candidate_superset => candidate_subset.IsProperSubsetOf(candidate_superset)))
-					not_subsets.Add(candidate_subset);
-			}
-
-			return not_subsets;
-		}
-
-		Coverage MarkEssential(Coverage groups)
+		private Coverage MarkEssential(Coverage groups)
 		{
 			// if there is any "one" not covered by any other group
 			// then "g1" is an essential group
@@ -228,45 +280,28 @@ namespace Karno
 			{
 				// Compare this group's terms with all the other groups
 				// and remove those covered by the other groups
-				var remaining_terms = new Group(g1.Except(dc_set_binary));
+				var remaining_terms = new Group(g1.Except(dcSetBinary));
 				foreach (var g2 in groups)
 				{
 					if (!g1.Equals(g2))
+					{
 						remaining_terms.ExceptWith(g2);
+					}
 				}
 
 				// If there is at least one term covered by ONLY this group
 				// then it is essential
 				if (remaining_terms.Count > 0)
+				{
 					g1.IsEssential = true;
+				}
 				else
+				{
 					g1.IsEssential = false;
+				}
 			}
 
 			return groups;
 		}
-
-		Coverage RemoveRedundant(Coverage groups)
-		{
-			// A group is redundant if it covers "ones" already covered by other
-			// essential groups
-			var redundant = new Coverage();
-			var essential = new Coverage(groups.Where(g => g.IsEssential.Value));
-
-			foreach (var g in groups)
-			{
-				if (g.IsEssential.Value)
-					continue;
-
-				var remaining_terms = new Group(g);
-				foreach (var e in essential)
-					remaining_terms.ExceptWith(e);
-				if (remaining_terms.Count == 0)
-					redundant.Add(g);
-			}
-
-			return new Coverage(groups.Except(redundant));
-		}
-
 	}
 }

@@ -7,11 +7,12 @@ namespace Karno
 {
 	public static class Utils
 	{
-
 		public static string ToMintermMap(this Group group)
 		{
 			if (group.Count == 0)
+			{
 				throw new ArgumentException("Group must contain at least one term");
+			}
 
 			// Take the first term and "mark" all variables that change value in the group
 			var terms = group.ToList();
@@ -22,11 +23,13 @@ namespace Karno
 				for (int i = 0; i < first_term_list.Count; i++)
 				{
 					if (terms[n][i] != first_term_list[i])
+					{
 						first_term_list[i] = '-';
+					}
 				}
 			}
 
-			return string.Join("", first_term_list);
+			return string.Join(string.Empty, first_term_list);
 		}
 
 		public static string ToSOPExpression(this Coverage coverage)
@@ -37,7 +40,9 @@ namespace Karno
 			{
 				result.Append(groups[g].ToMintermExpression());
 				if (g != (groups.Count - 1))
+				{
 					result.Append(" + ");
+				}
 			}
 
 			return result.ToString();
@@ -54,7 +59,7 @@ namespace Karno
 				{
 					var letter = (char)('A' + i);
 					result.Append(letter);
-					result.Append(map[i] == '0' ? "\'" : "");
+					result.Append(map[i] == '0' ? "\'" : string.Empty);
 				}
 			}
 
@@ -70,15 +75,23 @@ namespace Karno
 				for (int i = 0; i < terms.Count; i++)
 				{
 					if (i != terms.Count - 1)
+					{
 						Console.Write($"{terms[i]} - ");
+					}
 					else
+					{
 						Console.Write(terms[i]);
+					}
 				}
 
 				if (g.IsEssential.Value)
+				{
 					Console.WriteLine(" - Essential");
+				}
 				else
-					Console.WriteLine("");
+				{
+					Console.WriteLine(string.Empty);
+				}
 			}
 
 			Console.WriteLine("SOP: " + coverage.ToSOPExpression());
@@ -88,12 +101,18 @@ namespace Karno
 		{
 			var coverages = map.Minimize();
 			if (coverages.Count == 0)
+			{
 				return;
+			}
+
 			var min_cost = coverages.Min(c => c.Cost.Value);
 			foreach (var coverage in coverages)
 			{
 				if (only_min && coverage.Cost.Value > min_cost)
+				{
 					continue;
+				}
+
 				coverage.PrintCoverage();
 			}
 		}
@@ -101,9 +120,11 @@ namespace Karno
 		public static void PrintTestResults(this KMap map, bool only_min = false)
 		{
 			var tester = new KMapTester(map);
-			(var result, var n, var coverage) = tester.Test(only_min);
+			(var result, var _, var coverage) = tester.Test(only_min);
 			if (result)
+			{
 				Console.WriteLine("TEST: OK");
+			}
 			else
 			{
 				Console.WriteLine($"TEST: FAILED - with the following coverage:");
@@ -122,10 +143,14 @@ namespace Karno
 
 			int d = 0;
 			for (int i = 0; i < s1.Length; i++)
+			{
 				if (s1[i] != s2[i])
+				{
 					d++;
+				}
+			}
+
 			return d;
 		}
-
 	}
 }
