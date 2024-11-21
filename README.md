@@ -1,6 +1,12 @@
 # Karno
 Karno is a Karnaugh map solver that works with any number of variables. It includes an algorithm to minimize a k-map and one to test the output SOP expression against all possible inputs for the function.
 
+# CI-CD
+
+| Workflow     | Status                                   |
+|--------------|------------------------------------------|
+| main         | [![Master](https://github.com/Gruuuubik/karno/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/Gruuuubik/karno/actions/workflows/main.yml) |
+
 # Usage
 
 Given a 4-variables function having the following truth table
